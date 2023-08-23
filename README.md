@@ -1,6 +1,6 @@
 # Clint Lib
 
-This is the library for the [Clint LLM project](https://github.com/clint-llm).
+This is the web UI for the [Clint LLM project](https://github.com/clint-llm/clint-llm.github.io).
 Check out the [live project](https://clint-llm.github.io).
 
 The library is written in Rust and is compiled to WASM to serve the [Clint UI](https://github.com/clint-llm/clint/clint-ui).
