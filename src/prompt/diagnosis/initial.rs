@@ -67,7 +67,7 @@ pub async fn initial_diagnosis(
         .collect::<Vec<_>>();
 
     let args = ChatCompletionArgs::new(key.clone())
-        .with_model(ChatCompletionModel::Gpt35Turbo16k)
+        .with_model(ChatCompletionModel::Gpt4o)
         .with_temperature(0.0)
         .with_message(ChatCompletionMessage {
             role: ChatCompletionMessageRole::System,

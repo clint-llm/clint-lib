@@ -99,6 +99,10 @@ struct ChatCompletionResponseUpdate {
 pub enum ChatCompletionModel {
     #[serde(rename = "gpt-4")]
     Gpt4,
+    #[serde(rename = "gpt-4o")]
+    Gpt4o,
+    #[serde(rename = "gpt-4o-mini")]
+    Gpt4oMini,
     #[serde(rename = "gpt-3.5-turbo")]
     Gpt35Turbo,
     #[serde(rename = "gpt-3.5-turbo-16k")]
@@ -137,7 +141,7 @@ impl ChatCompletionArgs {
         Self {
             key,
             messages: Vec::new(),
-            model: ChatCompletionModel::Gpt35Turbo,
+            model: ChatCompletionModel::Gpt4o,
             max_tokens: None,
             temperature: None,
             functions: None,

@@ -126,6 +126,8 @@ You have recorded the following patient notes:
 {current_notes}
 
 Update your notes by adding information from the following patient statement. \
+The patient might not use the correct or most precise terminology, \
+so include multiple possible interpretations of the patient's statement. \
 Include only information that belongs in clinical notes. \
 Be sure to follow the complete structure of clinical notes, \
 including empty sections if you lack information. \
@@ -157,6 +159,8 @@ impl MessageInstructionsNotes {
 
 const MESSAGE_INSTRUCTIONS: &'static str = "\
 Start writing clinical notes with information from the following patient statement. \
+The patient might not use the correct or most precise terminology, \
+so include multiple possible interpretations of the patient's statement. \
 Include only information that belongs in clinical notes. \
 Be sure to follow the complete structure of clinical notes, \
 including empty sections if you lack information, \
