@@ -2,28 +2,27 @@
 
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
+use std::io;
 
-use hex;
 use ndarray::{Array2, ArrayView1, CowArray, Ix1};
-use ndarray_npy::{ReadNpyError, ReadNpyExt};
 use noisy_float::prelude::{n32, N32};
+use npyz::NpyFile;
 use tap::Pipe;
-use thiserror;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
+    #[error("array data shape is invalid")]
+    ArrayShape,
     #[error("array format is invalid: {0}")]
-    ArrayReadingError(ReadNpyError),
+    ArrayRaeding(io::Error),
     #[error("ID format is invalid: {0}")]
-    IdError(hex::FromHexError),
+    Id(hex::FromHexError),
     #[error("array values must not be NaN")]
-    NotNanError,
-    #[error("arrays have the wrong shape")]
-    ArrayShapeError,
+    NotNan,
     #[error("record format is invalid: {0}")]
-    RecordError(&'static str),
+    Record(&'static str),
     #[error("document not available: {0}")]
-    DocumentNotAvailableError(#[from] reqwest::Error),
+    DocumentNotAvailable(#[from] reqwest::Error),
 }
 
 type Result<T> = core::result::Result<T, Error>;
@@ -32,7 +31,7 @@ pub type DocId = [u8; 16];
 
 fn decode_doc_id(data: &[u8]) -> Result<DocId> {
     let mut id = [0u8; 16];
-    hex::decode_to_slice(data, &mut id[..]).map_err(Error::IdError)?;
+    hex::decode_to_slice(data, &mut id[..]).map_err(Error::Id)?;
     Ok(id)
 }
 
@@ -51,12 +50,24 @@ pub struct DocDb {
     is_symptoms: HashSet<DocId>,
 }
 
+fn array2_from_npy<T: npyz::Deserialize>(npy_data: NpyFile<&[u8]>) -> Result<Array2<T>> {
+    use ndarray::ShapeBuilder;
+    let shape = match npy_data.shape()[..] {
+        [i1, i2] => [i1 as usize, i2 as usize],
+        _ => Err(Error::ArrayShape)?,
+    };
+    let true_shape = shape.set_f(npy_data.order() == npyz::Order::Fortran);
+    ndarray::Array2::from_shape_vec(true_shape, npy_data.into_vec::<T>().unwrap())
+        .map_err(|_| Error::ArrayShape)
+}
+
 impl DocDb {
     /// Build a new database with the provided resources.
     ///
     /// The resources are bytes for the embeddings and metadata. Each document
     /// is represented by a [`DocId`]. The document contents aren't stored in
     /// the database, but are fetched from the URL.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         origin: String,
         embeddings: &[u8],
@@ -70,28 +81,28 @@ impl DocDb {
         is_symptoms: &[u8],
     ) -> Result<DocDb> {
         let embeddings: Array2<f32> =
-            ReadNpyExt::read_npy(embeddings).map_err(Error::ArrayReadingError)?;
+            array2_from_npy(NpyFile::new(embeddings).map_err(Error::ArrayRaeding)?)?;
         let embeddings: Array2<N32> = if embeddings.iter().any(|x| x.is_nan()) {
-            return Err(Error::NotNanError);
+            return Err(Error::NotNan);
         } else {
             // NOTE: asserts the values are non NaN only in debug builds
             embeddings.mapv(n32)
         };
 
-        let embeddings_pca_mapping: Option<Array2<N32>> = if let Some(embeddings_pca_mapping) =
-            embeddings_pca_mapping
-        {
-            let embeddings_pca_mapping: Array2<f32> =
-                ReadNpyExt::read_npy(embeddings_pca_mapping).map_err(Error::ArrayReadingError)?;
-            if embeddings_pca_mapping.iter().any(|x| x.is_nan()) {
-                return Err(Error::NotNanError);
+        let embeddings_pca_mapping: Option<Array2<N32>> =
+            if let Some(embeddings_pca_mapping) = embeddings_pca_mapping {
+                let embeddings_pca_mapping: Array2<f32> = array2_from_npy(
+                    NpyFile::new(embeddings_pca_mapping).map_err(Error::ArrayRaeding)?,
+                )?;
+                if embeddings_pca_mapping.iter().any(|x| x.is_nan()) {
+                    return Err(Error::NotNan);
+                } else {
+                    // NOTE: asserts the values are non NaN only in debug builds
+                    embeddings_pca_mapping.mapv(n32).pipe(Some)
+                }
             } else {
-                // NOTE: asserts the values are non NaN only in debug builds
-                embeddings_pca_mapping.mapv(n32).pipe(Some)
-            }
-        } else {
-            None
-        };
+                None
+            };
 
         let embeddings_id: Vec<DocId> = embeddings_id
             .split(|&x| x == 0x0a)
@@ -100,7 +111,7 @@ impl DocDb {
             .collect::<Result<Vec<_>>>()?;
 
         if embeddings_id.len() != embeddings.shape()[0] {
-            return Err(Error::ArrayShapeError);
+            return Err(Error::ArrayShape);
         }
 
         let parents: HashMap<DocId, DocId> = parents
@@ -110,7 +121,7 @@ impl DocDb {
                 x.splitn(2, |&x| x == 0x09)
                     .collect::<Vec<&[u8]>>()
                     .pipe(<[&[u8]; 2]>::try_from)
-                    .map_err(|_| Error::RecordError("parent line lacks two columns"))
+                    .map_err(|_| Error::Record("parent line lacks two columns"))
             })
             .map(|x| match x {
                 Ok([id, parent]) => Ok((decode_doc_id(id)?, decode_doc_id(parent)?)),
@@ -125,13 +136,13 @@ impl DocDb {
                 x.splitn(2, |&x| x == 0x09)
                     .collect::<Vec<&[u8]>>()
                     .pipe(<[&[u8]; 2]>::try_from)
-                    .map_err(|_| Error::RecordError("title line lacks two columns"))
+                    .map_err(|_| Error::Record("title line lacks two columns"))
             })
             .map(|x| match x {
                 Ok([id, title]) => Ok((
                     decode_doc_id(id)?,
                     String::from_utf8(title.to_vec())
-                        .map_err(|_| Error::RecordError("title line isn't a valid string"))?,
+                        .map_err(|_| Error::Record("title line isn't a valid string"))?,
                 )),
                 Err(x) => Err(x),
             })
@@ -144,13 +155,13 @@ impl DocDb {
                 x.splitn(2, |&x| x == 0x09)
                     .collect::<Vec<&[u8]>>()
                     .pipe(<[&[u8]; 2]>::try_from)
-                    .map_err(|_| Error::RecordError("url line lacks two columns"))
+                    .map_err(|_| Error::Record("url line lacks two columns"))
             })
             .map(|x| match x {
                 Ok([id, title]) => Ok((
                     decode_doc_id(id)?,
                     String::from_utf8(title.to_vec())
-                        .map_err(|_| Error::RecordError("url line isn't a valid string"))?,
+                        .map_err(|_| Error::Record("url line isn't a valid string"))?,
                 )),
                 Err(x) => Err(x),
             })
@@ -240,7 +251,7 @@ impl DocDb {
         let url = format!("{}/db/documents/{}/{}.md", self.origin, path, id);
         let response = reqwest::get(&url)
             .await
-            .map_err(Error::DocumentNotAvailableError)?;
+            .map_err(Error::DocumentNotAvailable)?;
         response.text().await.unwrap().pipe(Ok)
     }
 

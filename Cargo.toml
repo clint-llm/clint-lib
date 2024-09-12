@@ -30,8 +30,7 @@ rmp-serde = "1.3.0"
 futures = "0.3.30"
 bytes = "1.7.1"
 async-sse = "5.1.0"
-ndarray = "0.15.6"
-ndarray-npy = "0.8.1"
+ndarray = "0.16.1"
 noisy_float = "0.2.0"
 hex = "0.4.3"
 itertools = "0.13.0"
@@ -39,6 +38,7 @@ tinytemplate = "1.2.1"
 schemars = { version = "0.8.21", features = ["preserve_order"] }
 wasm-bindgen-test = "0.3.43"
 js-sys = "0.3.64"
+npyz = "0.8.3"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
