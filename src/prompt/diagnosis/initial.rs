@@ -20,7 +20,12 @@ Consider the following clinical notes:
 
 List some plausible candidate diagnoses that are supported by the notes,
 in order from most likely to least likely. \
-Explain why the notes support and contradict each candidate diagnosis.\
+Explain why the notes support and contradict each candidate diagnosis. \
+Look for information that is incompatible with a diagnosis. \
+The patient typically won't present with textbook symptoms, \
+so don't rule out diagnoses due to some inconsistencies, \
+but do take note of significant contradictions, \
+basing your reasoning on physiological and biomechanical principles.\
 ";
 
 #[derive(Serialize)]

@@ -10,8 +10,8 @@ use crate::utils::render_template;
 const MESSAGE_INSTRUCTIONS: &'static str = "\
 Rewrite the following statement using precise medical terminology, \
 referring to the patient in the 3rd person. \
-If there is ambiguity in how a symptom is describe, \
-provide multiple descriptions of the symptom.
+Don't assume the statement is complete or accurate, \
+so be sure to include symptoms or systems that could be related to the statement.
 
 Statement:
 

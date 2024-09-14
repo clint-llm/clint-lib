@@ -26,6 +26,9 @@ Can you improve on the reasoning for this diagnosis given the notes? \
 Correct any inaccuracies in the reasoning. \
 Explain why the notes support the diagnosis. \
 Explain if there discrepancies between the notes and the diagnosis. \
+Look for information that is incompatible with a diagnosis. \
+Take note of significant contradictions, \
+basing your reasoning on physiological and biomechanical principles. \
 Keep in mind that the notes might be incomplete, \
 so some manifestations of the diagnosis might be missing from the notes. \
 Answer in 50 words or less.\

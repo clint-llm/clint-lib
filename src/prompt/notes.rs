@@ -16,8 +16,6 @@ pub struct Notes {
     pub history_of_present_illness: String,
     #[schemars(description = "The patient's medical history")]
     pub patient_history: String,
-    #[schemars(description = "Review of Systems")]
-    pub review_of_systems: String,
 }
 
 const NOTES_MARKDOWN: &'static str = "\
@@ -32,10 +30,6 @@ const NOTES_MARKDOWN: &'static str = "\
 {depth}# Patient History
 
 {patient_history}
-
-{depth}# Review of Systems
-
-{review_of_systems}\
 ";
 
 #[derive(Serialize)]
@@ -44,7 +38,6 @@ struct NotesMarkdown<'a> {
     chief_complaint: &'a str,
     history_of_present_illness: &'a str,
     patient_history: &'a str,
-    review_of_systems: &'a str,
 }
 
 impl<'a> NotesMarkdown<'a> {
@@ -61,7 +54,6 @@ impl Notes {
             chief_complaint: &self.chief_complaint,
             history_of_present_illness: &self.history_of_present_illness,
             patient_history: &self.patient_history,
-            review_of_systems: &self.review_of_systems,
         }
         .render()
         .unwrap()
@@ -97,27 +89,7 @@ Include information about the patient but not strictly related to the chief comp
 current or past medical conditions, \
 surgical history, \
 family history, \
-etc.
-
-## Review of Systems
-
-The _Review of Systems_ is a list of signs or symptoms of disease in body systems not uncovered in the History of Present Illness. \
-The list usually includes notes on one of many of the following systems: \
-constitutional, \
-skin, \
-eyes, \
-ENT, \
-pulmonary, \
-breast, \
-cardiovascular, \
-gastrointestinal, \
-genitourinary & gynecologic, \
-endocrine, \
-musculoskeletal, \
-hematologic & lymphatic, \
-neurologic, \
-psychiatric, \
-allergic & immunologic.\
+etc.\
 ";
 
 const MESSAGE_INSTRUCTIONS_NOTES: &'static str = "\
@@ -126,12 +98,16 @@ You have recorded the following patient notes:
 {current_notes}
 
 Update your notes by adding information from the following patient statement. \
-The patient might not use the correct or most precise terminology, \
-so include multiple possible interpretations of the patient's statement. \
+When the patient's statement includes symptoms, \
+the explanation could be incorrect or incomplete, \
+so include any plausible interpretations of the patient's symptoms in your notes. \
 Include only information that belongs in clinical notes. \
 Be sure to follow the complete structure of clinical notes, \
 including empty sections if you lack information. \
 Don't discard any information from your current notes.
+
+Be on the lookout for information that isn't plausible from a physiological or biochemical perspective. \
+If you find any, take note of the contradiction.
 
 Patient statement:
 
@@ -159,12 +135,16 @@ impl MessageInstructionsNotes {
 
 const MESSAGE_INSTRUCTIONS: &'static str = "\
 Start writing clinical notes with information from the following patient statement. \
-The patient might not use the correct or most precise terminology, \
-so include multiple possible interpretations of the patient's statement. \
+When the patient's statement includes symptoms, \
+the explanation could be incorrect or incomplete, \
+so include any plausible interpretations of the patient's symptoms in your notes. \
 Include only information that belongs in clinical notes. \
 Be sure to follow the complete structure of clinical notes, \
 including empty sections if you lack information, \
 and capture the patient's chief complaint.
+
+Be on the lookout for information that isn't plausible from a physiological or biochemical perspective. \
+If you find any, take note of the contradiction.
 
 Patient statement:
 
@@ -237,7 +217,6 @@ mod test {
             chief_complaint: "Patient has a headache.".to_string(),
             history_of_present_illness: String::new(),
             patient_history: String::new(),
-            review_of_systems: String::new(),
         }
         .to_markdown(0);
         assert!(notes_md.starts_with("# "));
@@ -250,7 +229,6 @@ mod test {
             chief_complaint: "Patient has a headache.".to_string(),
             history_of_present_illness: String::new(),
             patient_history: String::new(),
-            review_of_systems: String::new(),
         }
         .to_markdown(2);
         assert!(notes_md.starts_with("### "));
